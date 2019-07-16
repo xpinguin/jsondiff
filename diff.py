@@ -5,6 +5,7 @@ import json
 import tempfile
 import os
 import subprocess
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser()
 parser.add_argument("a", help="First File to Diff")
@@ -35,18 +36,14 @@ def _load_file(name):
     return temp_file.name
 
 
-def walk_and_sort(dictionary):
-    # if it's a dictionary, dive into it to see what we find...
-    if isinstance(dictionary, dict):
-        # loop over all its items, and see if they're arrays (so we can sort them)
-        for key, item in dictionary.iteritems():
-            # if it's another dictionary, repeat the process
-            if isinstance(item, dict):
-                walk_and_sort(item)
-            # if it's an array, get that bad boy sorted :)
-            elif isinstance(item, list):
-                item.sort()
+def walk_and_sort(coll):
+    if isinstance(coll, dict):
+        return OrderedDict([(k,v) for k,v in sorted(
+                    map(lambda kv: (kv[0], walk_and_sort(kv[1])), coll.iteritems()), key=lambda k: k[0])])
 
-    return dictionary
+    elif isinstance(coll, list):
+        return sorted(list(map(walk_and_sort, coll)))
+
+    return coll
 
 (__name__ == '__main__' and diff(args.a, args.b, args.difftool))
